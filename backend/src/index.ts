@@ -1,18 +1,41 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import bodyParser from 'body-parser';
+import { join } from 'path';
+import cors from 'cors';
 import { createServer } from 'http';
+import http from 'http';
 import { Server } from 'socket.io';
 import { AppDataSource } from './config/data-source';
-import { generateToken, verifyToken } from './utils/auth';
 import authRoutes from './routes/authRoutes';
 import dotenv from 'dotenv';
+import newIssueRoutes from './routes/newIssueRoutes';
+import counterRoutes from './routes/counterRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import { CustomRequest, CustomSession } from './types/session';
 
 dotenv.config();
 
 const app = express();
+app.use(cors());
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+app.use(session({
+    secret: process.env.JWT_SECRET || '05dffad7cd4eef5bdcd5ede297961c85197b99c86db50ab130ff02f17998d6d6', // Change this to a more secure secret
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false },// Set secure: true if using HTTPS
+}));
+
 const server = createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: '*',
+        origin: "http://localhost:3001",
+        methods: ["GET", "POST"]
     },
 });
 
@@ -23,19 +46,34 @@ io.on('connection', (socket) => {
         console.log('user disconnected');
     });
 
-    socket.on('message', (msg) => {
+    /*socket.on('message', (msg) => {
         console.log('message: ' + msg);
         io.emit('message', msg);
-    });
+    });*/
 });
 
+//emit new issue 
+export const emitNewIssue = (counterId: number, issue: any) => {
+    io.emit('newIssue', { counterId, issue });
+};
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 app.get('/', (req, res) => {
     res.send('Queue Management System backend..');
 });
 
 app.use('/auth', authRoutes);
+app.use('/issue', newIssueRoutes);
+app.use('/counter', counterRoutes);
+app.use('/notification', notificationRoutes);
+
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    console.error('Error occurred:', err);
+    res.status(500).json({ message: 'Server error' });
+});
 
 AppDataSource.initialize().then(() => {
     console.log('Connected to the database');
@@ -45,4 +83,4 @@ AppDataSource.initialize().then(() => {
     });
 }).catch(error => console.log(error));
 
-export { io };
+export { app, server, io };

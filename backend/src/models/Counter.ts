@@ -9,14 +9,14 @@ export class Counter {
 
     @Column()
     cName!: string;
-    @Column()
+    @Column({ default: false })
     status!: boolean;
 
     @OneToOne(() => User, user => user.counter)
     @JoinColumn({ name: 'cUserId'})
     user!: User;
-    @Column()
-    cUserId!: number;
+    @Column({ nullable: true })
+    cUserId!: number | null;
 
     @OneToMany(() => Issue, issue => issue.counter)
     issues!: Issue[];

@@ -16,7 +16,7 @@ export class Issue {
     telephoneNo!: string;
     @Column()
     email!: string;
-    @Column()
+    @Column({ default: false })
     status!: boolean;
     @CreateDateColumn()
     createdAt!: Date;

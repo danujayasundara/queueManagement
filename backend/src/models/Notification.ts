@@ -9,7 +9,7 @@ export class Notification {
 
     @Column()
     content!: string;
-    @Column()
+    @Column({ default: false })
     status!: boolean;
     @CreateDateColumn()
     createdAt!: Date;

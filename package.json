@@ -1,0 +1,16 @@
+{
+  "name": "queue-management-system",
+  "scripts": {
+    "start": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd backend && npm start",
+    "client": "cd frontend && cross-env PORT=3001 npm start"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "express-session": "^1.18.0"
+  }
+}

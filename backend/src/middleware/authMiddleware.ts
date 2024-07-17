@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import  { verifyToken } from '../utils/auth';
+import { CustomRequest } from '../types/session';
 
 //const secretKey = '';
-interface CustomRequest extends Request {
+/*interface CustomRequest extends Request {
     user?: number;
-}
+}*/
 
 export const authMiddleware = (req: CustomRequest, res: Response, next: NextFunction) => {
     const token = req.header('Authorization')?.split(' ')[1];
@@ -15,12 +16,17 @@ export const authMiddleware = (req: CustomRequest, res: Response, next: NextFunc
     }
 
     try {
-        const decoded = verifyToken(token) as JwtPayload;
+        const decoded = verifyToken(token) as { userId: number; userType: string };
+        console.log('Decoded token:', decoded);
         if (decoded && decoded.userId) {
-            req.user = decoded.userId;
+            req.session.userId = decoded.userId; // Set userId in session
+            req.session.userType = decoded.userType; // Set userType in session
+            next();
+        } else {
+            throw new Error('Invalid token');
         }
-        next();
     } catch (error) {
+        console.error('Auth middleware error:', error);
         res.status(400).json({ message: 'Invalid token' });
     }
 };
