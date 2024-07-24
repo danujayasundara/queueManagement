@@ -57,6 +57,12 @@ export const emitNewIssue = (counterId: number, issue: any) => {
     io.emit('newIssue', { counterId, issue });
 };
 
+//emit new notifications
+export const notifyNewNotification = () => {
+    io.emit('newNotification');
+};
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

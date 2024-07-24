@@ -6,6 +6,8 @@ import { getCounterByUserId, findCounterById,  updateCounterUserIdAndStatus, get
 import { generateToken } from '../utils/auth';
 import { CustomRequest } from '../types/session';
 import { User } from '../models/User';
+import { findUnsolvedIssuesByCounter } from '../daos/IssueDao';
+import { io } from '..';
 
 const counterSessionMap: Map<number, number | null> = new Map();
 
@@ -45,6 +47,18 @@ export const loginUser = async (userName: string, password: string, req: CustomR
     if (user.userType === 'counter') {
         try {
             const counterId = await assignCounterToUser(user.id);
+            
+            /*const counter = await getCounterByUserId(user.id);
+            if (!counter) {
+                throw new Error('No counter found for this user');
+            }*/
+
+            const unsolvedIssues = await findUnsolvedIssuesByCounter(counterId);
+            let initialIssues = unsolvedIssues.map(issue => issue.id);
+
+            // Emit event to reset and fetch new issues
+            io.emit('counterLogin', { counterId: counterId, initialIssues });
+            
             return { token, userId: user.id, userType: user.userType, counterId };
         } catch (error: any) {
             if (error.message === 'No counters available') {
@@ -63,6 +77,9 @@ export const logoutUser = async (userId: number, userType: string, req: CustomRe
     if (userType === 'counter') {
         if (counter) {
             await updateCounterUserIdAndStatus (counter, null, true);
+            // Emit event to reset issues
+            io.emit('counterLogout', { counterId: counter.id });
+
             counterSessionMap.set(counter.id, null); 
             return { message: 'Counter user logged out successfully' };
         } else {

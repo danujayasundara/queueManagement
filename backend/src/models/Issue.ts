@@ -20,6 +20,8 @@ export class Issue {
     status!: boolean;
     @CreateDateColumn()
     createdAt!: Date;
+    @CreateDateColumn({nullable: true })
+    solvedAt!: Date | null;
 
     @ManyToOne(() => User, user => user.issues)
     @JoinColumn({ name: 'userId'})
@@ -38,4 +40,8 @@ export class Issue {
     @OneToMany(() => Notification, notification => notification.issue)
     notifications!: Notification[];
 
+}
+
+export interface IssueWithIndex extends Issue {
+    index?: number;
 }

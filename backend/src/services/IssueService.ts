@@ -1,6 +1,11 @@
-import { createIssue, countUnsolvedIssuesByCounter, getUnsolvedIssuesForCounter, findIssueById, updateIssueStatus } from "../daos/IssueDao";
+import { createIssue, countUnsolvedIssuesByCounter, getUnsolvedIssuesForCounter, findIssueById, updateIssueStatus, updateIssueCounter, findUnsolvedIssuesByCounterId, findUnsolvedIssueByUserId, findLastSolvedIssueByCounter, findUnsolvedIssuesByCounter } from "../daos/IssueDao";
 import { getOpenCounters } from "../daos/CounterDao";
-import { Issue } from "../models/Issue";
+import { Issue, IssueWithIndex } from "../models/Issue";
+import { Counter } from "../models/Counter";
+import { emitNewIssue } from "..";
+import { Server } from "socket.io";
+
+const io = new Server();
 
 export const assignIssueToCounter = async (issueData: Partial<Issue>) => {
     const openCounters = await getOpenCounters();
@@ -20,18 +25,17 @@ export const assignIssueToCounter = async (issueData: Partial<Issue>) => {
         counterUnsolvedMap[counter.id] = 0;
     });
 
-    // Update the map with actual unsolved issues count retrieved from the database
+    // Update the map with actual unsolved issues count
     unsolvedCounts.forEach(({ counterId, unsolvedCount }: { counterId: number, unsolvedCount: number }) => {
         if (counterUnsolvedMap.hasOwnProperty(counterId)) {
             counterUnsolvedMap[counterId] = unsolvedCount;
         }
     });
 
-    // Find the counter with the minimum number of unsolved issues
     let minIssueCounterId = openCounters[0].id;
     let minIssueCount = counterUnsolvedMap[minIssueCounterId];
 
-    // Iterate through the counter unsolved map to find the minimum
+    //find the minimum
     for (const counterId in counterUnsolvedMap) {
         if (counterUnsolvedMap[counterId] < minIssueCount) {
             minIssueCount = counterUnsolvedMap[counterId];
@@ -41,7 +45,6 @@ export const assignIssueToCounter = async (issueData: Partial<Issue>) => {
 
     console.log('Minimum Issue Counter ID:', minIssueCounterId);
 
-    // Create the new issue object with the minimum issue counter ID
     const newIssue = {
         ...issueData,
         status: false,
@@ -49,8 +52,13 @@ export const assignIssueToCounter = async (issueData: Partial<Issue>) => {
         createdAt: new Date()
     };
 
-    // Save the new issue to the database
-    return createIssue(newIssue);
+    //return createIssue(newIssue);
+    const savedIssue = await createIssue(newIssue);
+
+    // Emit new issue event
+    emitNewIssue(savedIssue.counterId, savedIssue);
+
+    return savedIssue;
 };
 
 export const fetchUnsolvedIssuesForCounter = async (counterId: number, page: number, pageSize: number) => {
@@ -85,3 +93,135 @@ export const updateIssueStatusService = async (id: number, status: boolean) => {
         throw new Error(`Error updating status for issue ${id}: ${error.message}`);
     }
 };
+
+export const reassignIssues = async (closedCounterId: number) => {
+    const issues = await findUnsolvedIssuesByCounterId(closedCounterId);
+    if (issues.length === 0) {
+        return { newCounterId: null };
+    }
+    const unsolvedCounts = await countUnsolvedIssuesByCounter();
+
+    let openCounters: Counter[] = await getOpenCounters();
+    openCounters = openCounters.filter(counter => counter.id !== closedCounterId);
+    openCounters.sort((a: Counter, b: Counter) => {
+        const countA = unsolvedCounts.find((c: { counterId: number; }) => c.counterId === a.id)?.unsolvedCount || 0;
+        const countB = unsolvedCounts.find((c: { counterId: number; }) => c.counterId === b.id)?.unsolvedCount || 0;
+        return countA - countB;
+    });
+
+    if (openCounters.length === 0) {
+        throw new Error("No open counters available to reassign issues");
+    }
+
+    const targetCounterId = openCounters[0].id;
+
+    await updateIssueCounter(closedCounterId, targetCounterId);
+
+    //emitNewIssue(closedCounterId, issues);
+    //emitNewIssue(targetCounterId, issues);
+    issues.forEach(issue => {
+        emitNewIssue(closedCounterId, issue);
+        emitNewIssue(targetCounterId, issue);
+    });
+
+    return targetCounterId;
+};
+
+/*let initialUnsolvedIssues: Issue[] = [];
+
+export const getOngoingQueueData = async (userId: number) => {
+    const userIssue: Issue | null = await findUnsolvedIssueByUserId(userId);
+
+    if (!userIssue) {
+        return { message: `No unsolved issues found for this user ${userId}`, status: 404 };
+    }
+
+    const counterId = userIssue.counterId;
+
+    if (initialUnsolvedIssues.length === 0) {
+        initialUnsolvedIssues = await findUnsolvedIssuesByCounter(counterId);
+    }
+
+    const userIssueIndex = initialUnsolvedIssues.findIndex(issue => issue.id === userIssue.id) + 1;
+
+    let currentIssueIndex = 1;
+    let nextIssueIndex = 2;
+
+    const lastSolvedIssue = initialUnsolvedIssues.filter(issue => issue.status === true).pop();
+    if (lastSolvedIssue) {
+        currentIssueIndex = initialUnsolvedIssues.findIndex(issue => issue.id === lastSolvedIssue.id) + 2;
+        nextIssueIndex = currentIssueIndex + 1;
+    }
+
+    return {
+        currentIssueIndex,
+        nextIssueIndex,
+        userIssueIndex,
+        status: 200
+    };
+};*/
+export const getOngoingQueueData = async (userId: number) => {
+    try {
+        // Fetch the unsolved issue for the user
+        const unsolvedIssueByUser = await findUnsolvedIssueByUserId(userId);
+        if (!unsolvedIssueByUser) {
+            throw new Error("No unsolved issue found for the user");
+        }
+
+        const counterId = unsolvedIssueByUser.counterId;
+
+        // Fetch all unsolved issues for the counter and assign static indices
+        const initialUnsolvedIssues = await findUnsolvedIssuesByCounter(counterId);
+
+        // Store initial issue IDs and their static indices for reference
+        const staticIndices = initialUnsolvedIssues.map((issue, index) => ({
+            id: issue.id,
+            staticIndex: index + 1
+        }));
+
+        // Find the last solved issue
+        const lastSolvedIssue = await findLastSolvedIssueByCounter(counterId);
+        let currentIndex = 1;
+        if (lastSolvedIssue) {
+            const lastSolvedIssueIndex = staticIndices.findIndex(i => i.id === lastSolvedIssue.id);
+            if (lastSolvedIssueIndex !== -1) {
+                currentIndex = staticIndices[lastSolvedIssueIndex].staticIndex + 1;
+            }
+        }
+
+        const nextIndex = currentIndex + 1;
+
+        // Determine the user's issue index based on static indices
+        const userIssueIndex = staticIndices.find(i => i.id === unsolvedIssueByUser.id)?.staticIndex || 1;
+
+        return {
+            initialIssues: staticIndices,
+            counterId,
+            currentIndex,
+            nextIndex,
+            myIndex: userIssueIndex
+        };
+    } catch (error) {
+        console.error("Error fetching ongoing queue data:", error);
+        throw error;
+    }
+};
+
+/*export const resetInitialIssues = () => {
+    initialIssues = [];
+};
+
+export const addIssueToInitialList = (newIssue: Issue) => {
+    const newIndex = initialIssues.length + 1;
+    initialIssues.push({ ...newIssue, index: newIndex });
+};*/
+
+/*export const markIssueAsSolved = async (issueId: number) => {
+    // Mark the issue as solved in your database
+    const issue = await AppDataSource.getRepository(Issue).findOneBy({ id: issueId });
+    if (issue) {
+        issue.status = true;
+        await AppDataSource.getRepository(Issue).save(issue);
+        lastSolvedIssueId = issueId; // Update the last solved issue ID
+    }
+};*/

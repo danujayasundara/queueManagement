@@ -3,7 +3,7 @@
 import bcrypt from 'bcrypt';
 
 const saltRounds = 10;
-const password = 'counter5';
+const password = 'user4';
 
 const hashPassword = async (password: string): Promise<string> => {
     try {

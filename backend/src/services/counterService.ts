@@ -1,3 +1,4 @@
+import { io } from "..";
 import { getCounterByUserId, findCounterById, saveCounterStatus, updateCounterUserIdAndStatus, getAvailableCounters   } from "../daos/CounterDao";
 import { Counter } from "../models/Counter";
 
@@ -22,7 +23,16 @@ export const toggleCounterStatusService = async (counterId: number) => {
     }
     counter.status = !counter.status;
     await saveCounterStatus(counter);
-    return counter.status ? 'Counter closed successfully' : 'Counter opened successfully';
+    if (counter.status) {
+        // Counter closed, status is 1
+        io.emit('counterClose', { counterId });
+        return 'Counter closed successfully';
+    } else {
+        // Counter opened, status is 0
+        io.emit('counterOpen', { counterId });
+        return 'Counter opened successfully';
+    }
+    //return counter.status ? 'Counter closed successfully' : 'Counter opened successfully';
 };
 
 export const getCounterStatusService = async (counterId: number) => {

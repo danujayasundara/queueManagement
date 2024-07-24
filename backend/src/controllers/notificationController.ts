@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
-import { createNotificationService } from "../services/notificationService"; 
+import { createNotificationService, unseenNotifications, updateNotificationStatusService, allNotificationByUserId } from "../services/notificationService"; 
+import { getAllNotificationsByUserId } from "../daos/notificationDao";
+import { io } from '../index';
 
 export const createNotificationHandler = async (req: Request, res: Response) => {
     try {
@@ -9,5 +11,45 @@ export const createNotificationHandler = async (req: Request, res: Response) => 
     } catch (error: any) {
         console.error('Error creating notification:', error);
         res.status(500).json({ error: 'Failed to create notification' });
+    }
+};
+
+export const fetchUnseenNotifi = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.body;
+        const unseenCount = await unseenNotifications(userId);
+        res.status(200).json({ count: unseenCount });
+    } catch (error: any) {
+        console.error('Error fetching unseen notification count', error.message);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+export const updateNotifiStatus = async (req: Request, res: Response) => {
+    try {
+        const { notificationId, userId } = req.body;
+        await updateNotificationStatusService(notificationId);
+        const unseenCount = await unseenNotifications(userId);
+        io.emit('notificationStatusUpdated', { userId, notificationId, unseenCount });
+        res.status(200).json({ count: unseenCount });
+    } catch (error: any) {
+        console.error('Error updating notification status', error.message );
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+export const getAllByUserId = async (req: Request, res: Response) => {
+    try {
+        const { userId } = req.body;
+        console.log('Received userId: ', userId);  // Debugging line
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+        const { notifications } = await allNotificationByUserId(userId);
+        console.log(`All notifications ${userId} `, notifications);
+        res.status(200).json({ notifications });
+    } catch (error: any) {
+        console.error('Error getting notification', error.message );
+        res.status(500).json({ error: 'Server error' });
     }
 };
