@@ -8,22 +8,17 @@ import { CustomRequest } from '../types/session';
 import { User } from '../models/User';
 import { findUnsolvedIssuesByCounter } from '../daos/IssueDao';
 import { io } from '..';
+import { resetStaticIndices, resetUnsolvedIssues, setUnsolvedIssues } from '../utils/staticIndexStore';
+import { fetchAndAssignStaticIndices } from './IssueService';
 
 const counterSessionMap: Map<number, number | null> = new Map();
 
 export const assignCounterToUser = async (userId: number) => {
-    //const openCounters = await getOpenCounters();
-    
     const availableCounters = await getAvailableCounters();
 
     for (const counter of availableCounters) {
-        /*if (!counterSessionMap.has(counter.id) || counterSessionMap.get(counter.id) === null) {
-            await updateCounterUserIdAndStatus(counter, userId, false); // Assign user and set status to 0 (open)
-            counterSessionMap.set(counter.id, userId); // Update session map
-            return counter.id;
-        }*/
        if (counter.status === true && counter.cUserId === null) {
-            await updateCounterUserIdAndStatus(counter, userId, false); // Assign user and set status to 0 (open)
+            await updateCounterUserIdAndStatus(counter, userId, false); 
             return counter.id;
         }
     }
@@ -48,13 +43,10 @@ export const loginUser = async (userName: string, password: string, req: CustomR
         try {
             const counterId = await assignCounterToUser(user.id);
             
-            /*const counter = await getCounterByUserId(user.id);
-            if (!counter) {
-                throw new Error('No counter found for this user');
-            }*/
+            await fetchAndAssignStaticIndices(counterId.toString());
 
             const unsolvedIssues = await findUnsolvedIssuesByCounter(counterId);
-            let initialIssues = unsolvedIssues.map(issue => issue.id);
+            const initialIssues = unsolvedIssues.map(issue => issue.id);
 
             // Emit event to reset and fetch new issues
             io.emit('counterLogin', { counterId: counterId, initialIssues });
@@ -77,6 +69,9 @@ export const logoutUser = async (userId: number, userType: string, req: CustomRe
     if (userType === 'counter') {
         if (counter) {
             await updateCounterUserIdAndStatus (counter, null, true);
+            resetStaticIndices(counter.id.toString());
+            resetUnsolvedIssues(counter.id.toString());
+            
             // Emit event to reset issues
             io.emit('counterLogout', { counterId: counter.id });
 
@@ -95,17 +90,3 @@ export const logoutUser = async (userId: number, userType: string, req: CustomRe
     }
     
 };
-
-
-/*export const logoutCounterUser = async (counterId: number) => {
-    const counter = await findCounterById(counterId);
-
-    if (counter) {
-        await updateCounterUserIdAndStatus(counter, null, true); // Clear user and set status to true (closed)
-        counterSessionMap.set(counter.id, null); // Update session map
-        return true;
-    }
-    throw new Error('Counter not found');
-};*/
-
-//export default loginUser;

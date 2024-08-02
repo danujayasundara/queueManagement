@@ -1,6 +1,4 @@
 import { createNotification, getUnseenNotifications, updateNotificationStatus, getAllNotificationsByUserId } from "../daos/notificationDao"; 
-import { findUserById } from "../daos/UserDao"; 
-import { findIssueById } from "../daos/IssueDao"; 
 import { Notification } from "../models/Notification";
 
 export const createNotificationService = async (userId: number, issueId: number, content: string) => {
@@ -48,7 +46,6 @@ export const updateNotificationStatusService = async ( notifiId: number)=> {
 export const allNotificationByUserId = async (userId: number) => {
     try {
         const notifications  = await getAllNotificationsByUserId(userId);
-        console.log(`All notifications of ${userId} = `, notifications);
         return { notifications };
     } catch (error) {
         console.error('Error fetching notification' ,error);

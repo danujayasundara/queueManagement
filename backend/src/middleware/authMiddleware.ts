@@ -3,11 +3,6 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import  { verifyToken } from '../utils/auth';
 import { CustomRequest } from '../types/session';
 
-//const secretKey = '';
-/*interface CustomRequest extends Request {
-    user?: number;
-}*/
-
 export const authMiddleware = (req: CustomRequest, res: Response, next: NextFunction) => {
     const token = req.header('Authorization')?.split(' ')[1];
 

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { fetchCounterName, toggleCounterStatusService, getCounterStatusService } from "../services/counterService";
+import { fetchCounterName, toggleCounterStatusService, getCounterStatusService, getOpenCountersCount } from "../services/counterService";
 
 export const getCounterName = async (req: Request, res: Response) => {
     const { counterId  } = req.body;
@@ -14,6 +14,17 @@ export const getCounterName = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error fetching counter name', error);
         res.status(500).json({ message: 'Server error'});
+    }
+};
+
+export const getOpenCounters = async (req: Request, res: Response) => {
+    try {
+        const count = await getOpenCountersCount();
+        console.log("OPEN COUNTERS", count);
+        return res.status(200).json({ count });
+    } catch (error) {
+        console.error('Failed to fetch open counters count', error);
+        res.status(500).json({ message: 'Failed to fetch open counters count' });
     }
 };
 

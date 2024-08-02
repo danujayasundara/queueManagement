@@ -1,9 +1,6 @@
 import { Request, Response } from "express";
 import { loginUser, logoutUser  } from "../services/authService";
 import { CustomRequest } from "../types/session";
-import { getUserByUsername } from "../daos/UserDao";
-import { getCounterByUserId, updateCounterUserIdAndStatus } from '../daos/CounterDao';
-//import { assignCounterToUser } from "../services/counterService";
 
 export const login = async (req: Request, res: Response) => {
     const { userName, password } = req.body;

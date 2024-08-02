@@ -22,6 +22,6 @@ export const updateNotificationStatus = async (notifiId: number) => {
 };
 
 export const getAllNotificationsByUserId = async(userId: number) => {
-    const all  = await notifiDao.find({ where: { notifUserId: userId }, order: { createdAt: 'DESC' }});
+    const all  = await notifiDao.find({ where: { notifUserId: userId, status: false }, order: { createdAt: 'DESC' }});
     return all;
 };
