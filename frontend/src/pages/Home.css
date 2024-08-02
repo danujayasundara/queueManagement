@@ -1,0 +1,22 @@
+/*.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}*/
+.home-content {
+    flex: 1;
+    margin-bottom: 390px;
+}
+
+.home-content h1 {
+    font-size: 2rem;
+}
+
+.login-links {
+    top: 20px;
+    right: 20px;
+}
+
+.login-links a {
+    margin-bottom: 10px;
+}

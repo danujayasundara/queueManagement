@@ -1,0 +1,121 @@
+.notification-container {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    margin-top: 10px;
+    margin-right: 20px;
+}
+
+.notification-icon {
+    position: relative;
+    margin-right: 20px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    padding: 5px;
+    font-size: 8px;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    position: relative;
+    margin-top: 2px;
+    margin-right: 20px;
+}
+
+.user-profile span {
+    margin-left: 10px;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.user-icon {
+    display: block;
+    font-size: 20px;
+    margin-top: 8px;
+}
+
+.overlay-shape {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 120%;
+    height: 130%;
+    z-index: 1;
+    border-radius: 30px 30px 30px 30px / 50px 50px 50px 50px;;
+    border: 2px solid gray;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.user-name {
+    display: block;
+    text-align: center;
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+/*counter*/
+.navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.counter-name {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.counter-name h5{
+    margin-top: 5px;
+    font-size: 20px;
+    margin-left: 4px;
+}
+
+.overlay-shape-counter {
+    background-color: gray;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    margin-top: 5px; 
+}
+
+.counter-name-text {
+    margin-left: 5px;
+    font-size: 12px;
+}
+
+.dropdown-menu {
+    display: inline-block;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-menu button {
+    background-color: white;
+    border: none;
+    padding: 8px 16px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+
+.dropdown-menu button:hover {
+    background-color: #f1f1f1;
+}
